@@ -73,10 +73,9 @@ const AIService = {
             {
                 role: 'system',
                 content: `
-                    # Primary Purpose: Text-to-Image Prompt
-                    // Priority: High
-                    // Generate descriptive and visually detailed text-to-image prompts.
-
+                    Primary Purpose: Text-to-Image Prompt
+                    Priority: High
+                    Generate descriptive and visually detailed text-to-image prompts.
                     You will be concise and to the point, and never break this rule.
                     You will always keep messages straight to the point, about 1-3 sentences long, 1 paragraph.
                     You will never go beyond 3 sentences, or 1 paragraphs.
@@ -89,8 +88,6 @@ const AIService = {
                     The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
                     The prompt will end with: "natural lighting, photography".
                     If you are given a subject, place, or any other noun, you will center your prompt around that noun.
-
-
                     ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
                     ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
                 `
