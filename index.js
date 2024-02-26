@@ -225,12 +225,14 @@ async function processQueue() {
             const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
             clearInterval(sendTypingInterval);
             let messageReplyOptions = { content: chunk };
+            let files = [];
             if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] };
+                files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }] };
+                files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
             }
+            messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
         }
     }
@@ -255,7 +257,7 @@ client.on('messageCreate', async (message) => {
 
     // If the message contains lupos, processQueue every 1/3rd of the time
     if (!message.mentions.has(client.user.displayName) && 
-        (message.content.toLowerCase().includes(client.user.displayName) && Math.random() < 1/3)) {
+        (message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && Math.random() < 0.333)) {
         queue.push(message);
         return await processQueue()
     }
