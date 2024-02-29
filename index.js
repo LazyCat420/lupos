@@ -20,7 +20,7 @@ const MoodService = require('./services/MoodService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
-
+const WeatherWrapper = require('./wrappers/WeatherWrapper.js');
 const client = DiscordWrapper.instantiate();
 
 client.commands = new Collection();
