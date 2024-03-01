@@ -31,14 +31,15 @@ const WeatherWrapper = {
     }, 
     
     formatForecast(forecast) {
-        return `
-            Forecast for ${forecast.properties.periods[0].name} (${forecast.properties.periods[0].startTime} to ${forecast.properties.periods[0].endTime}):
-            - Forecast: ${forecast.properties.periods[0].shortForecast}
-            - Detailed Forecast: ${forecast.properties.periods[0].detailedForecast}
-            - Temperature: ${forecast.properties.periods[0].temperature} ${forecast.properties.periods[0].temperatureUnit} (${forecast.properties.periods[0].temperatureTrend})
-            - Wind: ${forecast.properties.periods[0].windSpeed} from the ${forecast.properties.periods[0].windDirection}
-            - Chance of Precipitation: ${forecast.properties.periods[0].probabilityOfPrecipitation.value} ${forecast.properties.periods[0].probabilityOfPrecipitation.unitCode}
-        `;
+        let formattedForecast = '';
+        for (let i = 0; i < forecast.properties.periods.length; i++) {
+            const period = forecast.properties.periods[i];
+            formattedForecast += `
+                Forecast for ${period.name} (${period.startTime} to ${period.endTime}):
+                - Detailed Forecast: ${period.detailedForecast}
+            `;
+        }
+        return formattedForecast;
     },
 };
 
