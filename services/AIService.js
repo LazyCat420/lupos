@@ -7,6 +7,7 @@ const ComfyUILibrary = require('../libraries/ComfyUILibrary.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
+const WeatherWrapper = require('../wrappers/WeatherWrapper.js');
 
 const {
     GPT_MOOD_MODEL,
@@ -111,6 +112,7 @@ const AIService = {
         const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, recent100Messages, userMessages);
         const generateUsersSummaryy = await generateUsersSummary(client, message, recent100Messages);
         const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
+        const weather = await WeatherWrapper.getWeatherandForcast(40.7128, -74.0060);
     
         conversation.push({
             role: 'system',
@@ -124,7 +126,9 @@ ${generateUsersSummaryy}
 ${MessageService.generateAssistantMessage()}
 ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
-${MessageService.generateServerSpecificMessage(message.guild?.id)}`
+${MessageService.generateServerSpecificMessage(message.guild?.id)}
+${weather}
+`
         });
     
         // conversation.push({
