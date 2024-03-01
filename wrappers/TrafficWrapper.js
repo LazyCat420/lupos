@@ -1,7 +1,7 @@
 
 const WeatherWrapper = {
     async getWeather(lat, lon) {
-        const response = await fetch(`https://api.weather.gov/points/${lat},${lon}`, {
+        const response = await fetch(`https://newsapi.org/v2/everything?q=tesla&from=2024-02-01&sortBy=publishedAt&apiKey=5455f4ce20144616adcae23b474c75d3`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         }).catch(error => console.error('Error:', error));
