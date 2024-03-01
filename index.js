@@ -22,8 +22,46 @@ const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
 const WeatherWrapper = require('./wrappers/WeatherWrapper.js');
 const client = DiscordWrapper.instantiate();
+const Ragwrapper = require('./wrappers/RagWrapper.js');
 
 client.commands = new Collection();
+
+const fetch = require('node-fetch');
+
+async function processQueue() {
+    if (processingQueue || queue.length === 0) {
+        console.log('empty Queue')
+        return;
+    }
+    processingQueue = true;
+    while (queue.length > 0) {
+        const message = queue.shift();
+        await message.channel.sendTyping();
+        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+
+        // Pass the message content as the question to the fetch request
+        const response = await fetch('http://127.0.0.1:5000/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                question: message.content
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.response);
+        })
+        .catch(error => {
+            console.error(error);
+        });
+
+        // Rest of your code...
+    }
+    processingQueue = false;
+}
+
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
