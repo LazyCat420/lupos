@@ -114,12 +114,12 @@ const AIService = {
         const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
         const weather = await WeatherWrapper.getWeatherandForcast(40.7128, -74.0060);
 
-        const roles = message.guild.members.cache.get(client.user.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+        const roles = UtilityLibrary.discordRoles(message.member);
     
         conversation.push({
             role: 'system',
             content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
-${MessageService.generateDateMessage(message)}
+${MessageService.generateDateMessage()}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
 ${generateCurrentUserSummaryy}
@@ -253,7 +253,7 @@ ${weather}
                     ${MessageService.generateBackstoryMessage(interaction.guild.id)}
                     ${MessageService.generatePersonalityMessage()}
                     ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
-                    ${MessageService.generateDateMessage(interaction)}
+                    ${MessageService.generateDateMessage()}
                     ${systemContent}
                 `
             },
