@@ -65,6 +65,8 @@ async function processQueue() {
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
+// D:\develop\chatter is one level up from here
+const chatterPath = path.join(__dirname, '../chatter');
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
@@ -254,7 +256,7 @@ async function processQueue() {
         let generatedAudio;
 
         if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(responseMessage) }
+        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(message, responseMessage) }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
@@ -263,7 +265,8 @@ async function processQueue() {
             let messageReplyOptions = { content: chunk };
             let files = [];
             if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
+                // files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
+                files.push({ attachment: await fs.promises.readFile(`${chatterPath}/${generatedAudio}`), name: 'lupos.mp3' });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
