@@ -66,7 +66,8 @@ async function processQueue() {
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 // D:\develop\chatter is one level up from here
-const chatterPath = path.join(__dirname, '../chatter');
+// const chatterPath = path.join(__dirname, '../chatter');
+const chatterPath = '\\\\wsl.localhost\\Ubuntu\\home\\rodrigo\\chatter';
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
@@ -249,14 +250,25 @@ async function processQueue() {
             message.reply("...");
             return;
         }
+
+        function findUserById(id) {
+            const user = client.users.cache.get(id);
+            return UtilityLibrary.discordUsername(user);
+        }
     
         const responseMessage = `${generatedResponse.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+
+        //  replace <@!1234567890> with the user's display name
+        const responseMessageAudio = responseMessage.replace(/<@!?\d+>/g, (match) => {
+            const id = match.replace(/<@!?/, '').replace('>', '');
+            return findUserById(id);
+        });
         
         let generatedImage;
         let generatedAudio;
 
         if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(message, responseMessage) }
+        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(message, responseMessageAudio) }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
