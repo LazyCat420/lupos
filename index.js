@@ -248,6 +248,12 @@ async function processQueue() {
         const userMention = UtilityLibrary.discordUserMention(message);
         const username = UtilityLibrary.discordUsername(message.author || message.member);
         
+        let timer = 0;
+
+        const timerInterval = setInterval(() => {
+            timer++;
+        }, 1000);
+        
         UtilityLibrary.consoleInfo([[`╔═══════════════════════════════════░▒▓ +MESSAGE+ ▓▒░═══════════════════════════════════╗`, { rapidBlink: true, color: 'yellow' }]]);
         console.info(`║ 💬 Replying to: ${username}(${userMention})`);
         if (message.guild) {
@@ -258,12 +264,12 @@ async function processQueue() {
         let generatedResponse = await AIService.generateText({message});
     
         if (!generatedResponse) {
+            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
+            timerInterval.unref();
             UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'red' }]]);
             message.reply("...");
             return;
         }
-        
-        // UtilityLibrary.consoleInfo(`║ 📑 Text: ${{text: generatedResponse}}`, { });
 
         UtilityLibrary.consoleInfo([[`║ 📑 Text: `, { }], [{ response: generatedResponse }, { }]]);
 
@@ -276,16 +282,16 @@ async function processQueue() {
         const responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
 
         //  replace <@!1234567890> with the user's display name
-        const responseMessageAudio = responseMessage.replace(/<@!?\d+>/g, (match) => {
+        const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
             const id = match.replace(/<@!?/, '').replace('>', '');
             return findUserById(id);
-        });
+        }).substring(0, 220);
         
         let generatedImage;
         let generatedAudio;
 
         if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_VOICE) { generatedAudio = await AIService.generateVoice(message, responseMessageAudio) }
+        if (GENERATE_VOICE) { generatedAudio = await AIService.generateVoice(message, voicePrompt) }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
@@ -295,7 +301,7 @@ async function processQueue() {
             let files = [];
             if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 // files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
-                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudio}`), name: 'lupos.mp3' });
+                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudio}`), name: `${generatedAudio}` });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
@@ -303,6 +309,8 @@ async function processQueue() {
             messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
         }
+        UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
+        timerInterval.unref();
         UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'green' }]]);
     }
     MoodService.instantiate();
