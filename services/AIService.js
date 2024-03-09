@@ -153,7 +153,6 @@ ${MessageService.generateAssistantMessage()}
 ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
 ${MessageService.generateServerSpecificMessage(message.guild?.id)}
-${weather}
 `
         });
 
