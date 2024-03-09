@@ -113,22 +113,22 @@ async function checkWebsocketStatus() {
 const prompt = {
   "3": {
     "inputs": {
-      "seed": 687520558485300,
-      "steps": 30,
-      "cfg": 4,
-      "sampler_name": "euler_ancestral",
+      "seed": 883917123996389,
+      "steps": 32,
+      "cfg": 5,
+      "sampler_name": "euler",
       "scheduler": "simple",
-      "denoise": 0.9,
+      "denoise": 1,
       "model": [
         "30",
         0
       ],
       "positive": [
-        "6",
+        "110",
         0
       ],
       "negative": [
-        "7",
+        "112",
         0
       ],
       "latent_image": [
@@ -139,32 +139,6 @@ const prompt = {
     "class_type": "KSampler",
     "_meta": {
       "title": "KSampler"
-    }
-  },
-  "6": {
-    "inputs": {
-      "text": "a beautiful detailed image of an evil ghost wolf disguised as a ninja in the midst of Duskwood, its ethereal fur blending seamlessly with the shadows of the dark, enchanted forest. Equipped with ancient, ghostly ninja weaponry and glowing red eyes that pierce through the darkness, the wolf moves with supernatural agility and stealth. Around it, the mist of the night swirls, adding an air of mystique and danger. The scenery captures the ghost ninja wolf as it prepares to strike, embodying both the silent deadliness of a skilled assassin and the menacing aura of an otherworldly predator, under natural lighting, photography.",
-      "clip": [
-        "37",
-        0
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
-    }
-  },
-  "7": {
-    "inputs": {
-      "text": "watermark, signature",
-      "clip": [
-        "37",
-        0
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
     }
   },
   "8": {
@@ -194,7 +168,7 @@ const prompt = {
   },
   "30": {
     "inputs": {
-      "unet_name": "stage_c.safetensors"
+      "unet_name": "stage_c_bf16.safetensors"
     },
     "class_type": "UNETLoader",
     "_meta": {
@@ -203,7 +177,7 @@ const prompt = {
   },
   "32": {
     "inputs": {
-      "unet_name": "stage_b.safetensors"
+      "unet_name": "stage_b_bf16.safetensors"
     },
     "class_type": "UNETLoader",
     "_meta": {
@@ -212,11 +186,11 @@ const prompt = {
   },
   "33": {
     "inputs": {
-      "seed": 294817137222856,
+      "seed": 125835085563168,
       "steps": 10,
-      "cfg": 1.4,
-      "sampler_name": "dpmpp_sde",
-      "scheduler": "sgm_uniform",
+      "cfg": 1.1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
       "denoise": 1,
       "model": [
         "32",
@@ -227,7 +201,7 @@ const prompt = {
         0
       ],
       "negative": [
-        "40",
+        "112",
         0
       ],
       "latent_image": [
@@ -242,9 +216,9 @@ const prompt = {
   },
   "34": {
     "inputs": {
-      "width": 1280,
-      "height": 1024,
-      "compression": 38,
+      "width": 1024,
+      "height": 1216,
+      "compression": 32,
       "batch_size": 1
     },
     "class_type": "StableCascade_EmptyLatentImage",
@@ -281,7 +255,7 @@ const prompt = {
   "40": {
     "inputs": {
       "conditioning": [
-        "6",
+        "110",
         0
       ]
     },
@@ -290,19 +264,301 @@ const prompt = {
       "title": "ConditioningZeroOut"
     }
   },
-  "43": {
+  "79": {
+    "inputs": {
+      "seed": 916071701976717,
+      "steps": 30,
+      "cfg": 9,
+      "sampler_name": "euler",
+      "scheduler": "karras",
+      "denoise": 0.3,
+      "model": [
+        "92",
+        0
+      ],
+      "positive": [
+        "113",
+        0
+      ],
+      "negative": [
+        "114",
+        0
+      ],
+      "latent_image": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "92": {
+    "inputs": {
+      "ckpt_name": "redolives_v20.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "POST CASCADE XL DETAIL"
+    }
+  },
+  "94": {
+    "inputs": {
+      "pixels": [
+        "8",
+        0
+      ],
+      "vae": [
+        "92",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "96": {
+    "inputs": {
+      "ckpt_name": "newrealityxlAllInOne_21.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "XL REFINER"
+    }
+  },
+  "98": {
     "inputs": {
       "filename_prefix": "ComfyUI",
-      "mode": "lossy",
-      "compression": 90,
+      "images": [
+        "121",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "UPSCALE + LVL 2 REFINER FINAL"
+    }
+  },
+  "100": {
+    "inputs": {
+      "seed": 767189133057789,
+      "steps": 20,
+      "cfg": 4,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.5,
+      "model": [
+        "96",
+        0
+      ],
+      "positive": [
+        "113",
+        0
+      ],
+      "negative": [
+        "114",
+        0
+      ],
+      "latent_image": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "101": {
+    "inputs": {
+      "samples": [
+        "100",
+        0
+      ],
+      "vae": [
+        "96",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "105": {
+    "inputs": {
       "images": [
         "8",
         0
       ]
     },
-    "class_type": "Save_as_webp",
+    "class_type": "PreviewImage",
     "_meta": {
-      "title": "Save_as_webp"
+      "title": "CASCADE BASE IMAGE PREVIEW"
+    }
+  },
+  "110": {
+    "inputs": {
+      "text": "detailed photography of a caterpillar made out of rusted steel close up portrait, masterpiece photography, insane detail macrophotography. natural lighting with detailed depth of field, Shading depth, deeply detailed shading depth an award winning poster, Intricate photography lighting, High Detail, Sharp focus, dramatic, photorealistic image",
+      "clip": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "112": {
+    "inputs": {
+      "text": "blurry, cartoon, watermark, ugly, 2D, simple, flat, outlines, child",
+      "clip": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "113": {
+    "inputs": {
+      "text": "detailed photography of a caterpillar made out of rusted steel close up portrait, masterpiece photography, insane detail macrophotography. natural lighting with detailed depth of field, Shading depth, deeply detailed shading depth an award winning poster, Intricate photography lighting, High Detail, Sharp focus, dramatic, photorealistic image",
+      "clip": [
+        "92",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "114": {
+    "inputs": {
+      "text": "blurry, cartoon, watermark, ugly, 2D, simple, flat, outlines, child",
+      "clip": [
+        "92",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "116": {
+    "inputs": {
+      "dimensions": " 832 x 1216  (portrait)",
+      "clip_scale": 2,
+      "batch_size": 1
+    },
+    "class_type": "SDXL Empty Latent Image (rgthree)",
+    "_meta": {
+      "title": "SDXL Empty Latent Image (rgthree)"
+    }
+  },
+  "117": {
+    "inputs": {
+      "model_name": "BSRGANx2.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "118": {
+    "inputs": {
+      "upscale_model": [
+        "117",
+        0
+      ],
+      "image": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale Image (using Model)"
+    }
+  },
+  "119": {
+    "inputs": {
+      "pixels": [
+        "118",
+        0
+      ],
+      "vae": [
+        "96",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "120": {
+    "inputs": {
+      "seed": 846697725981818,
+      "steps": 20,
+      "cfg": 7.9,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.15,
+      "model": [
+        "96",
+        0
+      ],
+      "positive": [
+        "113",
+        0
+      ],
+      "negative": [
+        "114",
+        0
+      ],
+      "latent_image": [
+        "119",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "121": {
+    "inputs": {
+      "samples": [
+        "120",
+        0
+      ],
+      "vae": [
+        "96",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "122": {
+    "inputs": {
+      "images": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "SDXL + LVL 1 REFINER PREVIEW"
     }
   }
 }
@@ -312,17 +568,18 @@ function createImagePromptFromText(text) {
     if (text) {
         fullPrompt["3"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
         fullPrompt["33"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
-        fullPrompt["6"]["inputs"]["text"] = text;
+        fullPrompt["110"]["inputs"]["text"] = text;
+        fullPrompt["113"]["inputs"]["text"] = text;
     }
     return fullPrompt
 }
 
-const ComfyUIWrapper = {
+const ComfyUILibrary = {
     async generateImage(text) {
         try {
             const prompt = createImagePromptFromText(text);
             const images = await generateImage(prompt);
-            return images[43][0];
+            return images[122][0];
         } catch (error) {
             return console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
         }
@@ -331,4 +588,4 @@ const ComfyUIWrapper = {
 };
 
 
-module.exports = ComfyUIWrapper;
+module.exports = ComfyUILibrary;
