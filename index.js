@@ -25,6 +25,8 @@ const WeatherWrapper = require('./wrappers/WeatherWrapper.js');
 const client = DiscordWrapper.instantiate();
 
 
+client.commands = new Collection();
+
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 // D:\develop\chatter is one level up from here
@@ -249,10 +251,10 @@ async function processQueue() {
         }).substring(0, 220);
         
         let generatedImage;
-        let generatedAudioFile, generatedAudioBuffer;
+        let generatedAudio;
 
         if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_VOICE) { ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt)) }
+        if (GENERATE_VOICE) { generatedAudio = await AIService.generateVoice(message, voicePrompt) }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
@@ -260,11 +262,9 @@ async function processQueue() {
             clearInterval(sendTypingInterval);
             let messageReplyOptions = { content: chunk };
             let files = [];
-            if (generatedAudioFile && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudioFile}`), name: `${generatedAudioFile}` });
-            }
-            if (generatedAudioBuffer && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: Buffer.from(generatedAudioBuffer, 'base64'), name: 'lupos.mp3' });
+            if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                // files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
+                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudio}`), name: `${generatedAudio}` });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
