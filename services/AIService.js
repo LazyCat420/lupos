@@ -207,7 +207,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
         // remove <@123456789> from message content by using regex to replace it by start of <@ and end of >
-        const messageContent = message.content.replace(/<@(\d+)>/g, '');
+        const messageContent = await AIService.generateTopicAtHand(message, message.content);
         let alerts;
         if (messageContent) {
             alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
@@ -332,7 +332,6 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         return response;
     },
     async generateTopicAtHand(message, text) {
-        await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
         let conversation = [
             {
@@ -351,6 +350,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         ]
         
         const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
+        UtilityLibrary.consoleInfo([[`║ 💡 Topic: `, { }], [response, { }]]);
         clearInterval(sendTypingInterval);
         return response;
     },
