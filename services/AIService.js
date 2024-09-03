@@ -410,6 +410,7 @@ const AIService = {
         let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
         if (notCapable.toLowerCase() === 'yes') {
             UtilityLibrary.consoleInfo([[`🎨 Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`🎨 Failed prompt output:\n${imagePrompt}`, { color: 'red' }, 'middle']]);
             imagePrompt = text ? text : message.content;
         }
         UtilityLibrary.consoleInfo([[`🎨 Image prompt output:\n${imagePrompt}`, { color: 'green' }, 'middle']]);

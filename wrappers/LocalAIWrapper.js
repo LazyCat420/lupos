@@ -22,8 +22,6 @@ const LocalAIWrapper = {
                 stream: false
             };
 
-            console.log('Request to Ollama:', JSON.stringify(requestBody, null, 2));
-
             const response = await fetch(LOCAL_LANGUAGE_MODEL_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -37,7 +35,6 @@ const LocalAIWrapper = {
             }
 
             const responseJson = await response.json();
-            console.log('Response from Ollama:', JSON.stringify(responseJson, null, 2));
             
             if (responseJson.message && responseJson.message.content) {
                 return responseJson.message.content.trim();
