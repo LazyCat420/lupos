@@ -266,22 +266,24 @@ async function messageQueue() {
         let generatedTextResponse;
         let generatedImage;
 
+        // Summary of the message in 5 words
+        const messageContent = message.content.replace(`<@${client.user.id}>`, '');
+        const summary = await AIService.generateSummaryFromMessage(message, messageContent);
+        client.user.setActivity(summary, { type: 4 });
+
         if (GENERATE_IMAGE) {
-            const { generatedText, imagePrompt } = await AIService.generateNewTextResponse(
-                client,
-                message,
-                recentMessages
-            );
+            const { generatedText, imagePrompt, modifiedMessage, systemPrompt } = await AIService.generateNewTextResponse(
+                client, message, recentMessages);
             generatedTextResponse = generatedText;
+            
             let newImagePrompt = await AIService.createImagePromptFromImageAndText(
-                message,
-                imagePrompt,
-                generatedText,
-                imageToGenerate
-            );
-            // update systemPrompt
-            // generate generatedText
+                message, imagePrompt, generatedText, imageToGenerate);
             generatedImage = await AIService.generateImage(newImagePrompt);
+
+            const { generatedText: generatedText2 } = await AIService.generateNewTextResponsePart2(
+                client, message, recentMessages, modifiedMessage, systemPrompt, newImagePrompt);
+            generatedTextResponse = generatedText2;
+
         } else {
             const { generatedText } = await AIService.generateNewTextResponse(client, message, recentMessages);
             generatedTextResponse = generatedText;
@@ -294,6 +296,9 @@ async function messageQueue() {
             timerInterval.unref();
             UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'red' }, 'end']]);
             message.reply("...");
+            clearInterval(sendTypingInterval);
+            timerInterval.unref();
+            lastMessageSentTime = luxon.DateTime.now().toISO();
             return;
         }
 
@@ -342,7 +347,7 @@ async function messageQueue() {
         }
         UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'green' }, 'end']]);
     }
-    MoodService.instantiate();
+    // MoodService.instantiate();
     processingMessageQueue = false;    
 }
 

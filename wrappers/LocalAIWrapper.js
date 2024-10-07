@@ -3,52 +3,76 @@ require('dotenv/config');
 const {
     LOCAL_LANGUAGE_MODEL_API_URL,
     LANGUAGE_MODEL_TEMPERATURE,
-    LANGUAGE_MODEL_MAX_TOKENS
+    LANGUAGE_MODEL_MAX_TOKENS,
+    LANGUAGE_MODEL_LOCAL
 } = require('../config.json');
 
 const LocalAIWrapper = {
-    async generateText(conversation, tokens) {
-        try {
-            const messages = conversation.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
+    async generateText(
+        conversation,
+        model=LANGUAGE_MODEL_LOCAL,
+        tokens=LANGUAGE_MODEL_MAX_TOKENS,
+        temperature=LANGUAGE_MODEL_TEMPERATURE
+    ) {
+        let text;
 
-            const requestBody = {
-                model: "llama3.1:8b", // Make sure this matches the model name in Ollama
-                messages: messages,
-                temperature: LANGUAGE_MODEL_TEMPERATURE,
-                max_tokens: tokens || LANGUAGE_MODEL_MAX_TOKENS,
-                stream: false
-            };
-
-            const response = await fetch(LOCAL_LANGUAGE_MODEL_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Ollama API Error:', response.status, errorText);
-                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        // remove name property from object in conversation
+        conversation = conversation.map((message) => {
+            if (message.name) {
+                delete message.name;
             }
+            return message;
+        });
 
-            const responseJson = await response.json();
-            
-            if (responseJson.message && responseJson.message.content) {
-                return responseJson.message.content.trim();
-            } else if (responseJson.choices && responseJson.choices[0] && responseJson.choices[0].message) {
-                return responseJson.choices[0].message.content.trim();
+        const mergedData = conversation.reduce((acc, cur, index, array) => {
+          if (cur.role === "user" || cur.role === "assistant" || cur.role === "system") {
+            if (acc.length && acc[acc.length - 1].role === cur.role) {
+              if (cur.role === "user" && (index === array.length - 1 || array[index + 1].role !== "user")) {
+                acc[acc.length - 1].content += `\n\n${cur.content}`;
+              } else {
+                acc[acc.length - 1].content += `\n\n${cur.content}`;
+              }
             } else {
-                console.error('Unexpected response structure:', responseJson);
-                return 'I apologize, but I encountered an error while processing your request.';
+              acc.push(cur);
             }
-        } catch (error) {
-            console.error('Error in LocalAIWrapper.generateText:', error);
-            return 'I apologize, but I encountered an error while processing your request.';
+          }
+          return acc;
+        }, []);
+
+        if (mergedData[1].role === "assistant") {
+            mergedData.shift();
         }
-    }
+
+
+        const response = await fetch(`${LOCAL_LANGUAGE_MODEL_API_URL}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messages: mergedData,
+                model: model,
+                temperature: temperature,
+                max_tokens: tokens,
+                stream: false
+            })
+        }).catch(error => console.error('Error:', error));
+        let responseJson = await response.json();
+        console.log('responseJson', responseJson);
+        console.log('responseJson', responseJson.choices[0].message);
+        if (responseJson.choices[0].message.content) {
+            text = responseJson.choices[0].message.content;
+        }
+        return text;
+    },
+    async generateEmbedding(text) {
+        return await fetch(`${LOCAL_LANGUAGE_MODEL_API_URL}/v1/embeddings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                // model: "text-embedding-ada-002",
+                input: text
+            })
+        }).catch(error => console.error('Error:', error));
+    },
 };
 
 module.exports = LocalAIWrapper;
