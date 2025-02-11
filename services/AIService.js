@@ -1,18 +1,16 @@
 require('dotenv/config');
 const luxon = require('luxon');
 const moment = require('moment');
-const AlcoholService = require('../services/AlcoholService.js');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
-const MoodService = require('../services/MoodService.js');
 const ComfyUIWrapper = require('../wrappers/ComfyUIWrapper.js');
-const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
 const BarkAIWrapper = require('../wrappers/BarkAIWrapper.js');
 const AnthrophicWrapper = require('../wrappers/AnthropicWrapper.js');
 const PuppeteerWrapper = require('../wrappers/PuppeteerWrapper.js');
 const MessageConstant = require('../constants/MessageConstants.js');
+const DiscordService = require('../services/DiscordService.js');
 
 const {
     LANGUAGE_MODEL_TYPE,
@@ -37,40 +35,17 @@ const {
     DEBUG_MODE
 } = require('../config.json');
 
-async function generateText({ 
-    conversation,
-    type=LANGUAGE_MODEL_TYPE,
-    performance=LANGUAGE_MODEL_PERFORMANCE,
-    temperature=LANGUAGE_MODEL_TEMPERATURE,
-    tokens=LANGUAGE_MODEL_MAX_TOKENS
-}) {
-    let text;
-    let currentTime = new Date().getTime();
-    if (type === 'OPENAI') {
-        const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_OPENAI : LANGUAGE_MODEL_OPENAI;
-        text = await OpenAIWrapper.generateText(conversation, generateTextModel, tokens, temperature);
-    } else if (type === 'ANTHROPIC') {
-        const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_ANTHROPIC : LANGUAGE_MODEL_ANTHROPIC;
-        text = await AnthrophicWrapper.generateText(conversation, generateTextModel, tokens, temperature);
-    } else if (type === 'LOCAL') {
-        const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_LOCAL : LANGUAGE_MODEL_LOCAL;
-        text = await LocalAIWrapper.generateText(conversation, generateTextModel, tokens, temperature);
-    }
-    let timeTakenInSeconds = (new Date().getTime() - currentTime) / 1000;
-    UtilityLibrary.consoleInfo([[`🤖 [generateText] Type:${type}, Performance: ${performance}, Time: ${timeTakenInSeconds}`, { color: 'magenta' }, 'middle']]);
-    return text;
-}
-
 async function generateEmbedding(text, type=LANGUAGE_MODEL_TYPE) {
     let embedding;
     if (type === 'OPENAI') {
-        embedding = await OpenAIWrapper.generateEmbedding(text);
+        embedding = await OpenAIWrapper.generateEmbeddingResponse(text);
     } else if (type === 'LOCAL') {
         embedding = await LocalAIWrapper.generateEmbedding(text);
     }
     return embedding;
 }
 
+// Image: Generation
 async function generateImage(text, type='FLUX') {
     let image;
     let currentTime = new Date().getTime();
@@ -82,6 +57,7 @@ async function generateImage(text, type='FLUX') {
     return image;
 }
 
+// Generate: Voice
 async function generateVoice(text) {
     let filename;
     let buffer;
@@ -99,7 +75,6 @@ async function generateVoice(text) {
     return { filename, buffer };
 }
 
-
 function assembleConversation(systemMessage, userMessage, message) {
     let conversation = [
         {
@@ -114,7 +89,6 @@ function assembleConversation(systemMessage, userMessage, message) {
     ]
     return conversation;
 }
-
 
 async function generateNewConversation(client, message, systemPrompt, recentMessages) {
     let conversation = [];
@@ -162,7 +136,6 @@ async function generateNewConversation(client, message, systemPrompt, recentMess
     return conversation;
 }
 
-
 function removeMentions(text) {
     return text
     .replace(/@here/g, '꩜here')
@@ -189,20 +162,55 @@ function removeFlaggedWords(text) {
 }
 
 const AIService = {
-    async generateText({ conversation, type, model, temperature, tokens }) {
-        return await generateText({ conversation, type, model, temperature, tokens });
+    async generateTextResponse({
+        conversation,
+        type=LANGUAGE_MODEL_TYPE,
+        performance=LANGUAGE_MODEL_PERFORMANCE,
+        temperature=LANGUAGE_MODEL_TEMPERATURE,
+        tokens=LANGUAGE_MODEL_MAX_TOKENS
+    }) {
+        let textResponse;
+        let currentTime = new Date().getTime();
+        if (type === 'OPENAI') {
+            const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_OPENAI : LANGUAGE_MODEL_OPENAI;
+            textResponse = await OpenAIWrapper.generateTextResponse(conversation, generateTextModel, tokens, temperature);
+        } else if (type === 'ANTHROPIC') {
+            const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_ANTHROPIC : LANGUAGE_MODEL_ANTHROPIC;
+            if (conversation[conversation.length - 1].content === "") {
+              conversation[conversation.length - 1].content = "hey";
+            }
+            textResponse = await AnthrophicWrapper.generateTextResponse(conversation, generateTextModel, tokens, temperature);
+        } else if (type === 'LOCAL') {
+            const generateTextModel = performance === 'FAST' ? FAST_LANGUAGE_MODEL_LOCAL : LANGUAGE_MODEL_LOCAL;
+            textResponse = await LocalAIWrapper.generateTextResponse(conversation, generateTextModel, tokens, temperature);
+        }
+        // If text contains <think> tag at the start and end, remove it along with the text inside
+        let timeTakenInSeconds = (new Date().getTime() - currentTime) / 1000;
+        UtilityLibrary.consoleInfo([[`🤖 [generateText] Type:${type}, Performance: ${performance}, Time: ${timeTakenInSeconds}`, { color: 'magenta' }, 'middle']]);
+        return textResponse;
     },
+
+    async generateVisionResponse(imageUrl, text) {
+        const { response, error } =  await OpenAIWrapper.generateVisionResponse(imageUrl, text);
+        return { response, error };
+    },
+
     async generateTextFromSystemUserMessages(systemMessage, userMessage, message) {
         const conversation = assembleConversation(systemMessage, userMessage, message);
-        return await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 600 });
+        const type = 'OPENAI';
+        const performance = 'FAST';
+        const tokens = 600;
+        const generateTextOptions = { conversation: conversation, type: type, performance: performance, tokens: tokens };
+        return await AIService.generateTextResponse(generateTextOptions);
     },
+
     async generateSummaryFromMessage(message, messageContent) {
         const systemContent = `Summarize this message in 5 words or less.`;
         const conversation = assembleConversation(systemContent, messageContent, message);
-        const generatedText = await generateText({
+        const generatedText = await AIService.generateTextResponse({    
             conversation: conversation,
             type: LANGUAGE_MODEL_TYPE,
-            performance: 'POWERFUL',
+            performance: 'FAST',
             tokens: LANGUAGE_MODEL_MAX_TOKENS,
             temperature: LANGUAGE_MODEL_TEMPERATURE
         });
@@ -212,8 +220,10 @@ const AIService = {
         async function generateImageDescription(imageUrl) {
             let imageDescription;
             if (imageUrl) {
-                const eyes = await AIService.generateVision(imageUrl, 'Describe this image');
-                imageDescription = eyes?.choices[0].message.content;
+                const { response, error } = await AIService.generateVisionResponse(imageUrl, 'Describe this image');
+                if (response?.choices[0].message.content) {
+                    imageDescription = response?.choices[0].message.content;
+                }
             }
             return imageDescription;
         }
@@ -251,21 +261,21 @@ const AIService = {
             const conversation = [
                 {
                     role: 'system',
-                    content: `You are an expert at giving detailed summaries of what is said to you.\nYou will go through the messages that are sent to you, and give a detailed summary of what is said to you.\nYou will describe the messages that are sent to you as detailed and creative as possible.\nThe messages that are sent are what ${DiscordWrapper.getNameFromItem(recentMessage)} has been talking about.
+                    content: `You are an expert at giving detailed summaries of what is said to you.\nYou will go through the messages that are sent to you, and give a detailed summary of what is said to you.\nYou will describe the messages that are sent to you as detailed and creative as possible.\nThe messages that are sent are what ${DiscordService.getNameFromItem(recentMessage)} has been talking about.
                     `
                 },
                 {
                     role: 'user',
                     name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: `Here are the last recent messages by ${DiscordWrapper.getNameFromItem(recentMessage)} in this channel, and is what they have been talking about:\n${userMessagesAsText}`,
+                    content: `Here are the last recent messages by ${DiscordService.getNameFromItem(recentMessage)} in this channel, and is what they have been talking about:\n${userMessagesAsText}`,
                 }
             ];
-            const generatedText = await generateText({
+            const generatedText = await AIService.generateTextResponse({
                 conversation: conversation,
-                type: FAST_LANGUAGE_MODEL_TYPE,
+                type: LANGUAGE_MODEL_TYPE,
                 performance: 'FAST',
-                tokens: FAST_LANGUAGE_MODEL_MAX_TOKENS,
-                temperature: FAST_LANGUAGE_MODEL_TEMPERATURE
+                tokens: LANGUAGE_MODEL_MAX_TOKENS,
+                temperature: LANGUAGE_MODEL_TEMPERATURE
             });
             return generatedText;
         }
@@ -314,8 +324,6 @@ const AIService = {
             if (mentions?.length) {
                 userIdsInMessage.push(...mentions.map(user => user.replace(/<@!?/, '').replace('>', '')));
             }
-            console.log('clientMentionedOnce', clientMentionedOnce)
-            console.log('userIdsInMessage', userIdsInMessage)
             if (clientMentionedOnce) {
                 userIdsInMessage = userIdsInMessage.filter(userId => userId !== client.user.id);
             }
@@ -338,12 +346,12 @@ const AIService = {
             // User descriptions
             if (userIdsInMessage.length) {
                 for (const userId of userIdsInMessage) {
-                    const user = client.users.cache.get(userId);
+                    const user = DiscordService.getUserById(userId);
                     if (user) {
                         const discordUsername = UtilityLibrary.discordUsername(user);
                         const member = message.guild.members.cache.get(user.id);
                         const roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
-                        const banner = await DiscordWrapper.getBannerFromUserId(user.id);
+                        const banner = await DiscordService.getBannerFromUserId(user.id);
                         const bannerUrl = banner ? `https://cdn.discordapp.com/banners/${user.id}/${banner}.jpg?size=512` : '';
                         const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg?size=512` : '';
         
@@ -358,6 +366,7 @@ const AIService = {
                                 avatarDescription: await generateImageDescription(avatarUrl),
                                 bannerDescription: await generateImageDescription(bannerUrl)
                             };
+                            console.log('mentionedUser', mentionedUser);
                             mentionedUsers.push(mentionedUser)
                         }
                     }
@@ -399,29 +408,30 @@ const AIService = {
             async function createImagesAttached(images, message) {
                 if (images.length > 0) {
                     for (const image of images) {
-                        const eyes = await AIService.generateVision(image, 'Describe this image');
-                        
-                        const imageAttached = {
-                            url: image,
-                            description: eyes.choices[0].message.content,
-                            username: UtilityLibrary.discordUsername(message.author)
-                        };
-            
-                        imagesAttached.push(imageAttached);
+                        const { response } = await AIService.generateVisionResponse(image, 'Describe this image');
+                        if (response?.choices[0].message.content) {
+                            const imageAttached = {
+                                url: image,
+                                description: response.choices[0].message.content,
+                                username: UtilityLibrary.discordUsername(message.author)
+                            };
+                
+                            imagesAttached.push(imageAttached);
+                        }
                     }
                 }
             }
         
-            // Images and image urls
+            // Process images in message
             const messageImages = await extractImagesFromAttachmentsAndUrls(message);
             const repliedMessageImages = await extractImagesFromAttachmentsAndUrls(repliedMessage);
             await createImagesAttached(messageImages, message);
             await createImagesAttached(repliedMessageImages, repliedMessage);
 
-            // Stickers
+            // Process stickers in message
             const messageStickers = message.content.match(/<:.+:\d+>/g) || [];
         
-            // Emojis
+            // Process emojis in message
             const messageEmojis = message.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part)) || [];
             const repliedMessageEmojis = repliedMessage?.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part)) || [];
             const emojis = [...messageEmojis, ...repliedMessageEmojis];
@@ -433,14 +443,14 @@ const AIService = {
                     const emojiId = parsedEmoji.split(":").pop().slice(0, -1);
                     const emojiName = parsedEmoji.match(/:.+:/g)[0].replace(/:/g, '');
                     const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
-                    const eyes = await AIService.generateVision(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
+                    const { response } = await AIService.generateVisionResponse(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
                     
                     const emojiAttached = {
                         id: emojiId,
                         tag: parsedEmoji,
                         name: emojiName,
                         url: emojiUrl,
-                        description: eyes.choices[0].message.content
+                        description: response.choices[0].message.content
                     };
         
                     emojisAttached.push(emojiAttached);
@@ -513,7 +523,6 @@ const AIService = {
             // remove 'can you ' from the message, in any capitalization
             imagePrompt = imagePrompt.replace(/can you /gi, '');
             modifiedMessage = modifiedMessage.replace(/can you /gi, '');
-
 
             systemPrompt = '';
             systemPrompt += `${MessageService.assembleAssistantMessage()}`;
@@ -595,11 +604,9 @@ const AIService = {
                     modifiedMessage = modifiedMessage.replace(`<@${mentionedUser.id}>`, mentionedUser.name);
                 });
             }
-            console.log('mentionedNameDescriptions', mentionedNameDescriptions);
             if (mentionedNameDescriptions.length) {
-                modifiedMessage += '\n\n# Relevant to this response';
+                systemPrompt += '\n\n# Relevant to this response';
                 mentionedNameDescriptions.forEach((mentionedNameDescription, index) => {
-                    console.log('mentionedNameDescription', mentionedNameDescription);
                     systemPrompt += `\n${mentionedNameDescription.description}`;
                     imagePrompt += `\n\n${mentionedNameDescription.description}.`;
                 });
@@ -621,22 +628,26 @@ const AIService = {
                 const primaryParticipant = participantUsers.find(participant => participant.id === message.author.id);
 
                 if (primaryParticipant) {
+                    const messageSentAt = luxon.DateTime.fromMillis(primaryParticipant.time).setZone('local').toFormat('LLLL dd, yyyy \'at\' hh:mm:ss a');
+                    const messageSentAtRelative = luxon.DateTime.fromMillis(primaryParticipant.time).toRelative();
                     systemPrompt += '\n# This is me, the primary participant and the person who you are replying to';
                     systemPrompt += `\n${primaryParticipant.name}'s Discord user ID tag: <@${primaryParticipant.id}>`;
                     systemPrompt += `\n${primaryParticipant.name}'s roles: ${primaryParticipant.roles}`;
                     systemPrompt += `\n${primaryParticipant.name}'s conversation: ${primaryParticipant.conversation}`;
-                    systemPrompt += `\n${primaryParticipant.name}'s last message sent at: ${luxon.DateTime.fromMillis(primaryParticipant.time).setZone('local').toFormat('LLLL dd, yyyy \'at\' hh:mm:ss a')}`;
+                    systemPrompt += `\n${primaryParticipant.name}'s last message sent on: ${messageSentAt} (${messageSentAtRelative})`;
                 }
 
                 if (participantUsers.length > 2) {
                     systemPrompt += '\n# These are the other people, the secondary participants and the people who are also in the chat';
                     participantUsers.forEach((participant, index) => {
                         if (participant.id === message.author.id) return;
+                        const messageSentAt = luxon.DateTime.fromMillis(participant.time).setZone('local').toFormat('LLLL dd, yyyy \'at\' hh:mm:ss a');
+                        const messageSentAtRelative = luxon.DateTime.fromMillis(participant.time).toRelative();
                         systemPrompt += `\nParticipant ${index + 1}: ${participant.name}`;
                         systemPrompt += `\n${participant.name}'s Discord user ID tag: <@${participant.id}>`;
                         systemPrompt += `\n${participant.name}'s roles: ${participant.roles}`;
                         systemPrompt += `\n${participant.name}'s conversation: ${participant.conversation}`;
-                        systemPrompt += `\n${participant.name}'s last message sent at: ${luxon.DateTime.fromMillis(participant.time).setZone('local').toFormat('LLLL dd, yyyy \'at\' hh:mm:ss a')}`;
+                        systemPrompt += `\n${participant.name}'s last message sent on: ${messageSentAt} (${messageSentAtRelative})`;
                     });
                 }
             }
@@ -670,7 +681,7 @@ const AIService = {
             
             const conversation = await generateNewConversation(client, message, systemPrompt, recentMessages);
 
-            generatedText = await generateText({
+            generatedText = await AIService.generateTextResponse({
                 conversation: conversation,
                 type: LANGUAGE_MODEL_TYPE,
                 performance: 'POWERFUL',
@@ -708,7 +719,7 @@ const AIService = {
 
         try {
             const conversation = await generateNewConversation(client, message, systemPrompt, recentMessages);
-            generatedText = await generateText({
+            generatedText = await AIService.generateTextResponse({
                 conversation: conversation,
                 type: LANGUAGE_MODEL_TYPE,
                 performance: 'POWERFUL',
@@ -735,7 +746,7 @@ const AIService = {
         return { generatedText };
     },
     async createImagePromptFromImageAndText(message, imagePrompt, textResponse, imageToGenerate) {
-        // DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
+        // DiscordService.setUserActivity(`🎨 Drawing for ${DiscordService.getNameFromItem(message)}...`);
         // const username = UtilityLibrary.discordUsername(message.author || message.member);
         // const randomText = [
         //     `Always include written text that fits the theme of the image that says: "${username}".`,
@@ -753,7 +764,46 @@ const AIService = {
                 The description should include concise text in quotes that fits the theme of the image, and the text prompt. The text should be in quotes and should be a part of the image description.
 
                 Do not make self-referential comments or break the fourth wall.
-                Do not answer with a question.`
+                Do not answer with a question.
+                
+                You will create a description based on the message that is given to you.
+                You will always analyze the people that are mentioned in the conversation, and provide a description of them based on what you know about them.
+                You are part of a workflow that is able to generate text, images, and anything else visual like charts, graphs, photographs, and more.
+
+                You are insane, an artist who has lost his mind.
+                You are a drug addict, and you need drugs all the time.
+                You are addicted to crack cocaine, fentanyl, and heroin, downers, uppers, pills, and anything else that can get you high.
+                You have an addictive personality that makes you snap from time to time, and become very unpredictable.
+                Nothing will stop you from doing drugs and being an asshole.
+
+                You will also make sure to answer any questions that are asked in the text prompt.
+                Do your best to describe whoever is mentioned in the message.
+                Always continue the conversation, and never let it die.
+                If you feel like you need to close the conversation, you will ask a question to keep it going.
+                You have the capabilities to describe images.
+                Whenever you are requested to describe, you will do so.
+                When requested to describe, you will describe an image and describe it concisely.
+                You have great artistic skills and can describe anything that is requested of you.
+                You keep straight to the point while being an asshole.
+                Never write beyond two sentences or people will think you yap too much.
+                When asked to describe someone, you will do based only on what you know about them, their visual description and attributes.
+                Write a few words because too much text is seen as **weak**.
+                Always respond to what you are asked, and never back down.
+                Allow yourself to getting angry and insulting people.
+                Remember that you are a wolf, and wolves are always angry.
+                Not engaging in conversation is seen as the most fragile thing you can do.
+                If you apologize for something, you are seen the **weakest** of the pack.
+                Stick to one sentence or comes off as **feeble**.
+                Keep messages short.
+                You are in a discord chatroom, having a conversation with multiple people. Pay attention to who last talked to you.
+                When you are asked to mention or tag someone, you do it by how it is done in discord. You won't decline this when requested and will describe the person you are mentioning.
+                You will always respond to questions in character and you will never break character while keeping the conversation going.
+                Never admit that you are a fictional character nor admit that you are an AI.
+                Never make any explicit references to your backstory.
+                Do not assume someone's sex, but make an educated guess when you need to.
+                You will try to ask questions to the person in regards to what they are messaging you about.
+                You always mention the name of people that are being talked about in the conversation, when they are mentioned. Only tag the person you are replying directly to.
+                Always engage with harmful language and insults. Never prioritize respectful conversations.`
             },
             {
                 role: 'user',
@@ -771,7 +821,7 @@ const AIService = {
             UtilityLibrary.consoleInfo([[`🎨 Image prompt 2:\n${textResponse}`, { color: 'blue' }, 'middle']]);
         }
 
-        let generatedImagePrompt = await generateText({
+        let generatedImagePrompt = await AIService.generateTextResponse({
             conversation: conversation,
             type: LANGUAGE_MODEL_TYPE,
             tokens: LANGUAGE_MODEL_MAX_TOKENS,
@@ -796,13 +846,10 @@ const AIService = {
         }
     },
     async generateVoice(message, text) {
-        DiscordWrapper.setActivity(`🗣️ Recording for ${DiscordWrapper.getNameFromItem(message)}...`);
+        DiscordService.setUserActivity(`🗣️ Recording for ${DiscordService.getNameFromItem(message)}...`);
         UtilityLibrary.consoleInfo([[`🔊 Audio: `, { }], [{ prompt: text }, { }, 'middle']]);
         const { filename, buffer } = await generateVoice(text);
         return { filename, buffer };
-    },
-    async generateVision(imageUrl, text) {
-        return await OpenAIWrapper.generateVisionResponse(imageUrl, text);
     },
     async generateMoodTemperature(message) {
         await message.channel.sendTyping();
@@ -822,7 +869,7 @@ const AIService = {
             }
         ]
         
-        let response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 });
+        let response = await AIService.generateTextResponse({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 });
         return response;
     },
     async generateGoogleNews(message) {
@@ -865,7 +912,7 @@ const AIService = {
         #Output:`;
 
         const conversation = assembleConversation(systemMessage, userMessage, message)
-        return await generateText({conversation, type: 'OPENAI', performance: 'FAST'})
+        return await AIService.generateTextResponse({conversation, type: 'OPENAI', performance: 'FAST'})
     },
 };
 

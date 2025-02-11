@@ -8,7 +8,7 @@ const {
 } = require('../config.json');
 
 const LocalAIWrapper = {
-    async generateText(
+    async generateTextResponse(
         conversation,
         model=LANGUAGE_MODEL_LOCAL,
         tokens=LANGUAGE_MODEL_MAX_TOKENS,
@@ -27,8 +27,7 @@ const LocalAIWrapper = {
         const mergedData = conversation.reduce((accumulator, value, index, array) => {
             if (value.role === 'system') {
                 accumulator.push(value);
-            }
-            if (["user", "assistant"].includes(value.role)) {
+            } else if (["user", "assistant"].includes(value.role)) {
               if (accumulator.length && accumulator[accumulator.length - 1].role === value.role) {
                 if (value.role === "user" && index === array.length - 1) {
                   accumulator[accumulator.length - 1].content = `${value.content}`;
@@ -47,9 +46,9 @@ const LocalAIWrapper = {
           }, []);
 
         if (mergedData[1].role === "assistant") {
-            mergedData.shift();
+          // remove assistant message
+            mergedData.splice(1, 1);
         }
-
 
         const response = await fetch(`${LOCAL_LANGUAGE_MODEL_API_URL}/v1/chat/completions`, {
             method: 'POST',
@@ -63,8 +62,6 @@ const LocalAIWrapper = {
             })
         }).catch(error => console.error('Error:', error));
         let responseJson = await response.json();
-        console.log('responseJson', responseJson);
-        console.log('responseJson', responseJson.choices[0].message);
         if (responseJson.choices[0].message.content) {
             text = responseJson.choices[0].message.content;
         }
